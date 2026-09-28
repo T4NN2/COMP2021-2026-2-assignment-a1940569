@@ -114,6 +114,12 @@ public sealed class RecipeManagerTests
     }
 
     [Fact]
+    public void Constructor_NullRecipesThrowsArgumentNullException()
+    {
+        Assert.Throws<ArgumentNullException>(() => new RecipeManager(null!));
+    }
+
+    [Fact]
     public void InstructionsAreCompletedInFileOrder()
     {
         var manager = CreateManager();
