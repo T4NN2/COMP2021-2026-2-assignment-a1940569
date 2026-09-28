@@ -36,9 +36,9 @@ public sealed class RecipeManager : IRecipeManager
 
     public int RecipeCount => _recipes.Count;
     public int ShoppingItemCount => _shoppingItems.Count;
-    public int CookingPlanCount => 0;
+    public int CookingPlanCount => _cookingPlan.Count;
     public int PendingInstructionCount => 0;
-    public int RemovedRecipeCount => 0;
+    public int RemovedRecipeCount => _removedRecipes.Count;
 
     public bool AddRecipe(Recipe recipe)
     {
@@ -83,20 +83,50 @@ public sealed class RecipeManager : IRecipeManager
     public void ClearShoppingList() =>
         _shoppingItems.Clear();
 
-    public bool AddRecipeToCookingPlan(int recipeId) =>
-        throw new NotImplementedException("Part A: implement AddRecipeToCookingPlan.");
+    public bool AddRecipeToCookingPlan(int recipeId)
+    {
+        if (!_recipes.ContainsKey(recipeId) || _cookingPlan.Contains(recipeId))
+        {
+            return false;
+        }
 
-    public bool RemoveRecipeFromCookingPlan(int recipeId) =>
-        throw new NotImplementedException("Part A: implement RemoveRecipeFromCookingPlan.");
+        _cookingPlan.AddLast(recipeId);
+        return true;
+    }
 
-    public bool RestoreLastRemovedRecipe() =>
-        throw new NotImplementedException("Part A: implement RestoreLastRemovedRecipe.");
+    public bool RemoveRecipeFromCookingPlan(int recipeId)
+    {
+        if (!_cookingPlan.Remove(recipeId))
+        {
+            return false;
+        }
+
+        _removedRecipes.Push(recipeId);
+        return true;
+    }
+
+    public bool RestoreLastRemovedRecipe()
+    {
+        if (_removedRecipes.Count == 0)
+        {
+            return false;
+        }
+
+        var recipeId = _removedRecipes.Pop();
+        if (!_recipes.ContainsKey(recipeId) || _cookingPlan.Contains(recipeId))
+        {
+            return false;
+        }
+
+        _cookingPlan.AddLast(recipeId);
+        return true;
+    }
 
     public int? PeekLastRemovedRecipe() =>
-        throw new NotImplementedException("Part A: implement PeekLastRemovedRecipe.");
+        _removedRecipes.Count == 0 ? null : _removedRecipes.Peek();
 
     public IReadOnlyList<int> GetCookingPlan() =>
-        throw new NotImplementedException("Part A: implement GetCookingPlan.");
+        new List<int>(_cookingPlan);
 
     public bool StartCooking(int recipeId) =>
         throw new NotImplementedException("Part A: implement StartCooking.");
