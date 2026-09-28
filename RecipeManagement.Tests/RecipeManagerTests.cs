@@ -17,6 +17,103 @@ public sealed class RecipeManagerTests
     }
 
     [Fact]
+    public void AddRecipe_ValidRecipeIncreasesCount()
+    {
+        var manager = CreateManager();
+
+        Assert.True(manager.AddRecipe(new Recipe { Id = 30, Title = "Recipe C" }));
+        Assert.Equal(3, manager.RecipeCount);
+    }
+
+    [Fact]
+    public void AddRecipe_DuplicateIdReturnsFalse()
+    {
+        var manager = CreateManager();
+
+        Assert.False(manager.AddRecipe(new Recipe { Id = 10, Title = "Another Recipe" }));
+        Assert.Equal(2, manager.RecipeCount);
+    }
+
+    [Fact]
+    public void AddRecipe_NonPositiveIdReturnsFalse()
+    {
+        var manager = CreateManager();
+
+        Assert.False(manager.AddRecipe(new Recipe { Id = 0, Title = "Invalid Recipe" }));
+        Assert.Equal(2, manager.RecipeCount);
+    }
+
+    [Fact]
+    public void AddRecipe_BlankTitleReturnsFalse()
+    {
+        var manager = CreateManager();
+
+        Assert.False(manager.AddRecipe(new Recipe { Id = 30, Title = "   " }));
+        Assert.Equal(2, manager.RecipeCount);
+    }
+
+    [Fact]
+    public void AddRecipe_NullRecipeThrowsArgumentNullException()
+    {
+        var manager = CreateManager();
+
+        Assert.Throws<ArgumentNullException>(() => manager.AddRecipe(null!));
+    }
+
+    [Fact]
+    public void FindRecipe_MissingIdReturnsNull()
+    {
+        var manager = CreateManager();
+
+        Assert.Null(manager.FindRecipe(30));
+    }
+
+    [Fact]
+    public void RemoveRecipe_ExistingRecipeSucceeds()
+    {
+        var manager = CreateManager();
+
+        Assert.True(manager.RemoveRecipe(10));
+        Assert.Equal(1, manager.RecipeCount);
+    }
+
+    [Fact]
+    public void RemoveRecipe_MissingRecipeReturnsFalse()
+    {
+        var manager = CreateManager();
+
+        Assert.False(manager.RemoveRecipe(30));
+    }
+
+    [Fact]
+    public void Constructor_DuplicateIdsThrowsArgumentException()
+    {
+        Assert.Throws<ArgumentException>(() => new RecipeManager(new[]
+        {
+            new Recipe { Id = 10, Title = "Recipe A" },
+            new Recipe { Id = 10, Title = "Recipe B" }
+        }));
+    }
+
+    [Fact]
+    public void Constructor_NonPositiveIdThrowsArgumentException()
+    {
+        Assert.Throws<ArgumentException>(() => new RecipeManager(new[]
+        {
+            new Recipe { Id = 0, Title = "Invalid Recipe" }
+        }));
+    }
+
+    [Fact]
+    public void Constructor_BlankTitleThrowsArgumentException()
+    {
+        Assert.Throws<ArgumentException>(() => new RecipeManager(new[]
+        {
+            new Recipe { Id = 10, Title = "   " }
+        }));
+    }
+
+    [Fact]
     public void InstructionsAreCompletedInFileOrder()
     {
         var manager = CreateManager();
