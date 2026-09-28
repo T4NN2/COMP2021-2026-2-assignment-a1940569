@@ -328,6 +328,114 @@ public sealed class RecipeManagerTests
     }
 
     [Fact]
+    public void StartCooking_ValidRecipeLoadsAllInstructions()
+    {
+        var manager = CreateManager();
+
+        Assert.True(manager.StartCooking(10));
+        Assert.Equal(2, manager.PendingInstructionCount);
+    }
+
+    [Fact]
+    public void StartCooking_PreservesInstructionOrder()
+    {
+        var manager = CreateManager();
+
+        manager.StartCooking(10);
+
+        Assert.Equal("First step", manager.PeekNextInstruction());
+        Assert.Equal("First step", manager.CompleteNextInstruction());
+        Assert.Equal("Second step", manager.PeekNextInstruction());
+    }
+
+    [Fact]
+    public void PeekNextInstruction_DoesNotReduceCount()
+    {
+        var manager = CreateManager();
+        manager.StartCooking(10);
+
+        manager.PeekNextInstruction();
+
+        Assert.Equal(2, manager.PendingInstructionCount);
+    }
+
+    [Fact]
+    public void CompleteNextInstruction_RemovesExactlyOneInstruction()
+    {
+        var manager = CreateManager();
+        manager.StartCooking(10);
+
+        Assert.Equal("First step", manager.CompleteNextInstruction());
+        Assert.Equal(1, manager.PendingInstructionCount);
+        Assert.Equal("Second step", manager.PeekNextInstruction());
+    }
+
+    [Fact]
+    public void CompleteNextInstruction_CompletesInstructionsInFifoOrder()
+    {
+        var manager = CreateManager();
+        manager.StartCooking(10);
+
+        Assert.Equal("First step", manager.CompleteNextInstruction());
+        Assert.Equal("Second step", manager.CompleteNextInstruction());
+        Assert.Null(manager.CompleteNextInstruction());
+    }
+
+    [Fact]
+    public void PeekNextInstruction_EmptyQueueReturnsNull()
+    {
+        var manager = CreateManager();
+
+        Assert.Null(manager.PeekNextInstruction());
+    }
+
+    [Fact]
+    public void CompleteNextInstruction_EmptyQueueReturnsNull()
+    {
+        var manager = CreateManager();
+
+        Assert.Null(manager.CompleteNextInstruction());
+    }
+
+    [Fact]
+    public void StartCooking_MissingRecipeReturnsFalse()
+    {
+        var manager = CreateManager();
+
+        Assert.False(manager.StartCooking(30));
+    }
+
+    [Fact]
+    public void StartCooking_RecipeWithoutInstructionsReturnsFalse()
+    {
+        var manager = CreateManager();
+
+        Assert.False(manager.StartCooking(20));
+    }
+
+    [Fact]
+    public void StartCooking_SecondValidRecipeReplacesPreviousQueue()
+    {
+        var manager = CreateManager();
+        manager.StartCooking(10);
+
+        Assert.True(manager.StartCooking(20));
+        Assert.Equal(1, manager.PendingInstructionCount);
+        Assert.Equal("Serve immediately", manager.PeekNextInstruction());
+    }
+
+    [Fact]
+    public void StartCooking_FailedStartPreservesPreviousQueue()
+    {
+        var manager = CreateManager();
+        manager.StartCooking(10);
+
+        Assert.False(manager.StartCooking(30));
+        Assert.Equal(2, manager.PendingInstructionCount);
+        Assert.Equal("First step", manager.PeekNextInstruction());
+    }
+
+    [Fact]
     public void InstructionsAreCompletedInFileOrder()
     {
         var manager = CreateManager();
@@ -365,7 +473,8 @@ public sealed class RecipeManagerTests
             {
                 Id = 20,
                 Title = "Recipe B",
-                Ingredients = new() { "2 carrots", "1 onion" }
+                Ingredients = new() { "2 carrots", "1 onion" },
+                Instructions = new() { "Serve immediately" }
             }
         });
     }
