@@ -408,9 +408,12 @@ public sealed class RecipeManagerTests
     [Fact]
     public void StartCooking_RecipeWithoutInstructionsReturnsFalse()
     {
-        var manager = CreateManager();
+        var manager = new RecipeManager(new[]
+        {
+            new Recipe { Id = 30, Title = "No Instructions" }
+        });
 
-        Assert.False(manager.StartCooking(20));
+        Assert.False(manager.StartCooking(30));
     }
 
     [Fact]
@@ -431,6 +434,39 @@ public sealed class RecipeManagerTests
         manager.StartCooking(10);
 
         Assert.False(manager.StartCooking(30));
+        Assert.Equal(2, manager.PendingInstructionCount);
+        Assert.Equal("First step", manager.PeekNextInstruction());
+    }
+
+    [Fact]
+    public void RecipeCanMoveThroughCatalogueShoppingPlanHistoryAndCooking()
+    {
+        var manager = CreateManager();
+        Assert.Equal(2, manager.RecipeCount);
+
+        var recipe = manager.FindRecipe(10);
+        Assert.NotNull(recipe);
+        Assert.Equal("Recipe A", recipe.Title);
+
+        Assert.Equal(1, manager.AddIngredientsToShoppingList(recipe.Id));
+        Assert.Equal(1, manager.ShoppingItemCount);
+        Assert.Equal(new[] { "1 apple" }, manager.GetShoppingList());
+
+        Assert.True(manager.AddRecipeToCookingPlan(recipe.Id));
+        Assert.Equal(1, manager.CookingPlanCount);
+        Assert.Equal(new[] { 10 }, manager.GetCookingPlan());
+
+        Assert.True(manager.RemoveRecipeFromCookingPlan(recipe.Id));
+        Assert.Equal(0, manager.CookingPlanCount);
+        Assert.Equal(1, manager.RemovedRecipeCount);
+        Assert.Equal(10, manager.PeekLastRemovedRecipe());
+
+        Assert.True(manager.RestoreLastRemovedRecipe());
+        Assert.Equal(1, manager.CookingPlanCount);
+        Assert.Equal(new[] { 10 }, manager.GetCookingPlan());
+        Assert.Equal(0, manager.RemovedRecipeCount);
+
+        Assert.True(manager.StartCooking(recipe.Id));
         Assert.Equal(2, manager.PendingInstructionCount);
         Assert.Equal("First step", manager.PeekNextInstruction());
     }
