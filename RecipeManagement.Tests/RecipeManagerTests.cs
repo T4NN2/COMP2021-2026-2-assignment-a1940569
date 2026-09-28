@@ -120,6 +120,93 @@ public sealed class RecipeManagerTests
     }
 
     [Fact]
+    public void AddIngredientsToShoppingList_ValidRecipeReturnsIngredientCount()
+    {
+        var manager = CreateManager();
+
+        Assert.Equal(2, manager.AddIngredientsToShoppingList(20));
+    }
+
+    [Fact]
+    public void AddIngredientsToShoppingList_PreservesIngredientOrder()
+    {
+        var manager = CreateManager();
+
+        manager.AddIngredientsToShoppingList(20);
+
+        Assert.Equal(new[] { "2 carrots", "1 onion" }, manager.GetShoppingList());
+    }
+
+    [Fact]
+    public void ShoppingItemCount_UpdatesWhenIngredientsAreAdded()
+    {
+        var manager = CreateManager();
+
+        manager.AddIngredientsToShoppingList(20);
+
+        Assert.Equal(2, manager.ShoppingItemCount);
+    }
+
+    [Fact]
+    public void AddIngredientsToShoppingList_MissingRecipeReturnsZeroAndChangesNothing()
+    {
+        var manager = CreateManager();
+
+        Assert.Equal(0, manager.AddIngredientsToShoppingList(30));
+        Assert.Empty(manager.GetShoppingList());
+        Assert.Equal(0, manager.ShoppingItemCount);
+    }
+
+    [Fact]
+    public void AddIngredientsToShoppingList_TwiceAppendsDuplicates()
+    {
+        var manager = CreateManager();
+
+        manager.AddIngredientsToShoppingList(20);
+        manager.AddIngredientsToShoppingList(20);
+
+        Assert.Equal(new[] { "2 carrots", "1 onion", "2 carrots", "1 onion" }, manager.GetShoppingList());
+    }
+
+    [Fact]
+    public void ClearShoppingList_EmptiesListAndResetsCount()
+    {
+        var manager = CreateManager();
+        manager.AddIngredientsToShoppingList(20);
+
+        manager.ClearShoppingList();
+
+        Assert.Empty(manager.GetShoppingList());
+        Assert.Equal(0, manager.ShoppingItemCount);
+    }
+
+    [Fact]
+    public void ClearShoppingList_DoesNotRemoveRecipes()
+    {
+        var manager = CreateManager();
+        manager.AddIngredientsToShoppingList(20);
+
+        manager.ClearShoppingList();
+
+        Assert.Equal(2, manager.RecipeCount);
+        Assert.NotNull(manager.FindRecipe(20));
+    }
+
+    [Fact]
+    public void GetShoppingList_ReturnsSnapshotThatCannotModifyManager()
+    {
+        var manager = CreateManager();
+        manager.AddIngredientsToShoppingList(20);
+        var shoppingList = manager.GetShoppingList();
+
+        var mutableSnapshot = Assert.IsAssignableFrom<IList<string>>(shoppingList);
+        mutableSnapshot.Add("extra item");
+
+        Assert.Equal(2, manager.ShoppingItemCount);
+        Assert.Equal(new[] { "2 carrots", "1 onion" }, manager.GetShoppingList());
+    }
+
+    [Fact]
     public void InstructionsAreCompletedInFileOrder()
     {
         var manager = CreateManager();
@@ -156,7 +243,8 @@ public sealed class RecipeManagerTests
             new Recipe
             {
                 Id = 20,
-                Title = "Recipe B"
+                Title = "Recipe B",
+                Ingredients = new() { "2 carrots", "1 onion" }
             }
         });
     }
