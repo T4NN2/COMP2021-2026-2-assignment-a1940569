@@ -406,6 +406,39 @@ public sealed class RecipeManagerPartBTests
         Assert.Equal(new[] { 1 }, manager.GetSavedRecipes());
     }
 
+    [Fact]
+    public void PartBSearchAndSavedWorkflow_IntegratesWithPartAShoppingPlanAndCooking()
+    {
+        var manager = CreateManager();
+
+        var searchResults = manager.SearchByTitle("pasta");
+        var matchedRecipe = Assert.Single(searchResults);
+        var recipeId = matchedRecipe.Id;
+        Assert.Equal(2, recipeId);
+
+        Assert.True(manager.AddSavedRecipe(recipeId));
+        Assert.True(manager.IsRecipeSaved(recipeId));
+        Assert.Contains(recipeId, manager.GetSavedRecipes());
+
+        Assert.True(manager.RemoveSavedRecipe(recipeId));
+        Assert.False(manager.IsRecipeSaved(recipeId));
+        Assert.DoesNotContain(recipeId, manager.GetSavedRecipes());
+
+        Assert.Equal(2, manager.AddIngredientsToShoppingList(recipeId));
+        Assert.Equal(2, manager.ShoppingItemCount);
+        Assert.Equal(new[] { "300g pasta", "400g CHICKEN thigh" }, manager.GetShoppingList());
+
+        Assert.True(manager.AddRecipeToCookingPlan(recipeId));
+        Assert.Equal(1, manager.CookingPlanCount);
+        Assert.Equal(new[] { recipeId }, manager.GetCookingPlan());
+
+        Assert.True(manager.StartCooking(recipeId));
+        Assert.Equal(2, manager.PendingInstructionCount);
+        Assert.Equal("Boil pasta", manager.PeekNextInstruction());
+        Assert.Equal("Boil pasta", manager.CompleteNextInstruction());
+        Assert.Equal("Roast chicken", manager.PeekNextInstruction());
+    }
+
     private static RecipeManager CreateManager()
     {
         return new RecipeManager(new[]
