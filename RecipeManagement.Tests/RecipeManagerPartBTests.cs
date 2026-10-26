@@ -300,6 +300,112 @@ public sealed class RecipeManagerPartBTests
         Assert.Null(manager.FindRecipe(50)?.Nutrition?.ProteinG);
     }
 
+    [Fact]
+    public void AddSavedRecipe_ExistingRecipeId_ReturnsTrue()
+    {
+        var manager = CreateManager();
+
+        Assert.True(manager.AddSavedRecipe(1));
+    }
+
+    [Fact]
+    public void AddSavedRecipe_MissingRecipeId_ReturnsFalseAndDoesNotSave()
+    {
+        var manager = CreateManager();
+
+        Assert.False(manager.AddSavedRecipe(999));
+        Assert.False(manager.IsRecipeSaved(999));
+        Assert.Empty(manager.GetSavedRecipes());
+    }
+
+    [Fact]
+    public void AddSavedRecipe_DuplicateRecipeId_ReturnsFalseOnSecondAttemptAndStoresOnce()
+    {
+        var manager = CreateManager();
+
+        Assert.True(manager.AddSavedRecipe(1));
+        Assert.False(manager.AddSavedRecipe(1));
+        Assert.Single(manager.GetSavedRecipes(), 1);
+    }
+
+    [Fact]
+    public void IsRecipeSaved_ReturnsTrueWhenSavedAndFalseWhenUnsavedOrMissing()
+    {
+        var manager = CreateManager();
+        manager.AddSavedRecipe(2);
+
+        Assert.True(manager.IsRecipeSaved(2));
+        Assert.False(manager.IsRecipeSaved(1));
+        Assert.False(manager.IsRecipeSaved(999));
+    }
+
+    [Fact]
+    public void GetSavedRecipes_AfterSavingRecipe_ContainsSavedRecipeId()
+    {
+        var manager = CreateManager();
+        manager.AddSavedRecipe(2);
+
+        var saved = manager.GetSavedRecipes();
+
+        Assert.Contains(2, saved);
+        Assert.Single(saved);
+    }
+
+    [Fact]
+    public void RemoveSavedRecipe_CurrentlySavedRecipe_ReturnsTrueAndRemovesFromSaved()
+    {
+        var manager = CreateManager();
+        manager.AddSavedRecipe(1);
+
+        Assert.True(manager.RemoveSavedRecipe(1));
+        Assert.False(manager.IsRecipeSaved(1));
+        Assert.DoesNotContain(1, manager.GetSavedRecipes());
+    }
+
+    [Fact]
+    public void RemoveSavedRecipe_UnsavedOrMissingRecipeId_ReturnsFalse()
+    {
+        var manager = CreateManager();
+
+        Assert.False(manager.RemoveSavedRecipe(1));
+        Assert.False(manager.RemoveSavedRecipe(999));
+    }
+
+    [Fact]
+    public void GetSavedRecipes_WhenNoneSaved_ReturnsEmptyCollection()
+    {
+        var manager = CreateManager();
+
+        Assert.Empty(manager.GetSavedRecipes());
+    }
+
+    [Fact]
+    public void GetSavedRecipes_MultipleSavedRecipes_ReturnsAllSavedIdsRegardlessOfOrder()
+    {
+        var manager = CreateManager();
+        manager.AddSavedRecipe(3);
+        manager.AddSavedRecipe(1);
+
+        var saved = manager.GetSavedRecipes();
+
+        Assert.Equal(2, saved.Count);
+        Assert.Equal(new[] { 1, 3 }, saved.OrderBy(id => id));
+    }
+
+    [Fact]
+    public void GetSavedRecipes_ReturnsSnapshotThatCannotMutateInternalCollection()
+    {
+        var manager = CreateManager();
+        manager.AddSavedRecipe(1);
+        var savedSnapshot = manager.GetSavedRecipes();
+
+        var mutableList = Assert.IsAssignableFrom<IList<int>>(savedSnapshot);
+        mutableList.Add(3);
+
+        Assert.False(manager.IsRecipeSaved(3));
+        Assert.Equal(new[] { 1 }, manager.GetSavedRecipes());
+    }
+
     private static RecipeManager CreateManager()
     {
         return new RecipeManager(new[]
