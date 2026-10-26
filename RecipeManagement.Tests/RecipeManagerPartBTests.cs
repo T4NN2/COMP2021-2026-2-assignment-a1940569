@@ -201,6 +201,105 @@ public sealed class RecipeManagerPartBTests
             manager.FindRecipe(2)?.Ingredients);
     }
 
+    [Fact]
+    public void GetHighestProteinRecipes_ValidCount_ReturnsRecipesOrderedByDescendingProtein()
+    {
+        var manager = CreateProteinManager();
+
+        var results = manager.GetHighestProteinRecipes(3);
+
+        Assert.Equal(new[] { 20, 30, 10 }, results.Select(r => r.Id));
+    }
+
+    [Fact]
+    public void GetHighestProteinRecipes_RequestedCountSmallerThanQualifying_LimitsResult()
+    {
+        var manager = CreateProteinManager();
+
+        var results = manager.GetHighestProteinRecipes(2);
+
+        Assert.Equal(2, results.Count);
+        Assert.Equal(new[] { 20, 30 }, results.Select(r => r.Id));
+    }
+
+    [Fact]
+    public void GetHighestProteinRecipes_RecipeWithNullNutrition_IsExcludedWithoutThrowing()
+    {
+        var manager = CreateProteinManager();
+
+        var results = manager.GetHighestProteinRecipes(10);
+
+        Assert.DoesNotContain(results, r => r.Id == 40);
+    }
+
+    [Fact]
+    public void GetHighestProteinRecipes_RecipeWithNullProteinG_IsExcludedWithoutThrowing()
+    {
+        var manager = CreateProteinManager();
+
+        var results = manager.GetHighestProteinRecipes(10);
+
+        Assert.DoesNotContain(results, r => r.Id == 50);
+    }
+
+    [Fact]
+    public void GetHighestProteinRecipes_ZeroCount_ReturnsEmptyCollection()
+    {
+        var manager = CreateProteinManager();
+
+        var results = manager.GetHighestProteinRecipes(0);
+
+        Assert.Empty(results);
+    }
+
+    [Fact]
+    public void GetHighestProteinRecipes_NegativeCount_ReturnsEmptyCollection()
+    {
+        var manager = CreateProteinManager();
+
+        var results = manager.GetHighestProteinRecipes(-5);
+
+        Assert.Empty(results);
+    }
+
+    [Fact]
+    public void GetHighestProteinRecipes_CountLargerThanAvailable_ReturnsEveryQualifyingRecipe()
+    {
+        var manager = CreateProteinManager();
+
+        var results = manager.GetHighestProteinRecipes(50);
+
+        Assert.Equal(3, results.Count);
+        Assert.Equal(new[] { 20, 30, 10 }, results.Select(r => r.Id));
+    }
+
+    [Fact]
+    public void GetHighestProteinRecipes_RunningReport_LeavesOriginalRecipeCountUnchanged()
+    {
+        var manager = CreateProteinManager();
+
+        _ = manager.GetHighestProteinRecipes(2);
+        _ = manager.GetHighestProteinRecipes(0);
+        _ = manager.GetHighestProteinRecipes(10);
+
+        Assert.Equal(5, manager.RecipeCount);
+    }
+
+    [Fact]
+    public void GetHighestProteinRecipes_RunningReport_LeavesNutritionValuesUnchanged()
+    {
+        var manager = CreateProteinManager();
+
+        _ = manager.GetHighestProteinRecipes(3);
+
+        Assert.Equal(5.5, manager.FindRecipe(10)?.Nutrition?.ProteinG);
+        Assert.Equal(42.0, manager.FindRecipe(20)?.Nutrition?.ProteinG);
+        Assert.Equal(18.2, manager.FindRecipe(30)?.Nutrition?.ProteinG);
+        Assert.Null(manager.FindRecipe(40)?.Nutrition);
+        Assert.NotNull(manager.FindRecipe(50)?.Nutrition);
+        Assert.Null(manager.FindRecipe(50)?.Nutrition?.ProteinG);
+    }
+
     private static RecipeManager CreateManager()
     {
         return new RecipeManager(new[]
@@ -225,6 +324,43 @@ public sealed class RecipeManagerPartBTests
                 Title = "Blueberry Pancakes",
                 Ingredients = new() { "1 cup flour", "1 cup blueberries" },
                 Instructions = new() { "Flip pancakes" }
+            }
+        });
+    }
+
+    private static RecipeManager CreateProteinManager()
+    {
+        return new RecipeManager(new[]
+        {
+            new Recipe
+            {
+                Id = 10,
+                Title = "Garden Salad",
+                Nutrition = new NutritionInfo { ProteinG = 5.5 }
+            },
+            new Recipe
+            {
+                Id = 20,
+                Title = "Grilled Salmon",
+                Nutrition = new NutritionInfo { ProteinG = 42.0 }
+            },
+            new Recipe
+            {
+                Id = 30,
+                Title = "Lentil Soup",
+                Nutrition = new NutritionInfo { ProteinG = 18.2 }
+            },
+            new Recipe
+            {
+                Id = 40,
+                Title = "Mystery Smoothie",
+                Nutrition = null
+            },
+            new Recipe
+            {
+                Id = 50,
+                Title = "Fruit Bowl",
+                Nutrition = new NutritionInfo { ProteinG = null, CaloriesKcal = 120.0 }
             }
         });
     }
